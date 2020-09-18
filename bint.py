@@ -98,7 +98,21 @@ class Bin:
         if not (0 <= self.int < (1 << self.n)):
             raise ValueError("integer out of range")
 
+    def empty(self):
+        return self._new(0, 0)
+
+    @classmethod
+    def map_list(self, args, n):
+        return [Bin(arg, n) for arg in args]
+
     def resize(self, n):
+        """
+        >>> Bin(3).resize(10)
+        Bin(3, n=10)
+        >>> Bin(3).resize(1)
+        Traceback (most recent call last):
+        ValueError: integer out of range
+        """
         return Bin(self, n)
 
     def __index__(self):
@@ -106,6 +120,9 @@ class Bin:
         Whenever Python needs to losslessly convert the numeric object
         to an integer object (such as in slicing, or in the built-in bin(),
         hex() and oct() functions).
+
+        >>> [0, 10, 20, 30, 40][Bin(3)]
+        30
         """
         return self.int
 
@@ -146,13 +163,29 @@ class Bin:
     def __repr__(self):
         return "Bin(%d, n=%d)" % (self.int, self.n)
 
-    def __bytes__(self):
+    @property
+    def bytes(self):
+        r"""
+        >>> Bin(0x4142, 24).bytes
+        b'\x00AB'
+        """
         return self.int.to_bytes((self.n + 7) // 8, "big")
-    bytes = property(__bytes__)
 
-    def __hex__(self):
+    @property
+    def hex(self):
+        """
+        >>> Bin(0xabc, 12).hex
+        'abc'
+        """
         return hex(self.int).zfill((self.n + 3) // 4).lstrip("0x")
-    hex = property(__hex__)
+
+    @property
+    def bin(self):
+        """
+        >>> Bin(0xabc, 12).bin
+        '101010111100'
+        """
+        return bin(self.int).zfill(self.n).lstrip("0b")
 
     def __eq__(self, other):
         other = self._coerce_same_n(other)
@@ -363,8 +396,93 @@ class Bin:
         y = (self.int << other.n) | other.int
         return self._new(y, n=self.n + other.n)
 
+    def halves(self):
+        """
+        >>> Bin(0x79, 8).halves()
+        (Bin(7, n=4), Bin(9, n=4))
+        """
+        return self.split(parts=2)
+
+    def swap_halves(self):
+        """
+        >>> Bin(0x79, 8).swap_halves().hex
+        '97'
+        """
+        l, r = self.halves()
+        return Bin.concat(r, l)
+
+    def split(self, parts=None, sizes=None):
+        """
+        Split the bitstring into several parts.
+        Either:
+        - into @parts same-sized chunks
+        - into parts with sizes given by @sizes
+
+        >>> Bin(0x123, 12).split(parts=3)
+        (Bin(1, n=4), Bin(2, n=4), Bin(3, n=4))
+        >>> Bin(0x9821, 16).split(sizes=(4, 4, 8))   # 0x21 == 33
+        (Bin(9, n=4), Bin(8, n=4), Bin(33, n=8))
+        """
+        assert (parts is not None) ^ (sizes is not None)
+        if parts:
+            assert self.n % parts == 0
+            ret = []
+            n = self.n // parts
+            mask = (1 << n) - 1
+            x = self.int
+            for i in range(parts):
+                ret.append(self._new(x & mask, n=n))
+                x >>= n
+            return tuple(ret[::-1])
+        if sizes:
+            assert sum(sizes) == self.n
+            ret = []
+            x = self.int
+            for n in reversed(sizes):
+                mask = (1 << n) - 1
+                ret.append(self._new(x & mask, n=n))
+                x >>= n
+            return tuple(ret[::-1])
+
+    def __getitem__(self, idx):
+        """
+        >>> Bin(0x1234, 16)[0:4]
+        Bin(1, n=4)
+        >>> Bin(0x1234, 16)[4:12] # 0x23 == 35
+        Bin(35, n=8)
+        >>> Bin(0x1234, 16)[-4:]
+        Bin(4, n=4)
+        >>> Bin("101010")[::2]
+        Bin(7, n=3)
+        >>> Bin("101010")[0]
+        1
+        >>> Bin("101010")[1]
+        0
+        >>> Bin("101010")[2]
+        1
+        """
+        if isinstance(idx, slice):
+            # todo: optimize simple substring slices?
+            # easy to mess up with out of bounds, negative indices, etc. ...
+            return Bin(self.tuple[idx])
+        else:
+            idx = int(idx) % self.n
+            return 1 & (self.int >> (self.n - 1 - idx))
+
+
+
 
 def Bin8(x): return Bin(x, n=8)  # noqa
 def Bin16(x): return Bin(x, n=16)  # noqa
 def Bin32(x): return Bin(x, n=32)  # noqa
 def Bin64(x): return Bin(x, n=64)  # noqa
+
+
+def test_halves():
+    """
+    >>> Bin.concat(Bin(0x7, n=4), Bin(0xa, 4)).hex
+    '7a'
+    >>> Bin.concat(*Bin.map_list([1, 2, 3, 4, 5, 6, 10], 4)).hex
+    '123456a'
+    """
+    pass
