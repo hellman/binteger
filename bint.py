@@ -4,8 +4,17 @@ https://github.com/scott-griffiths/bitstring
 which is pretty awesome.
 
 The difference is that this module focuses on integers and stores
-integer internally, which can save time on some operations.
-Furthermore, the API is a bit more compact to aid simple conversions.
+an integer internally, which can save time on some operations.
+Furthermore, the API is a bit more compact to aid simple conversions, such as:
+
+>>> Bin(0x4142).bytes
+b'AB'
+>>> Bin(b'AB').int == 0x4142
+True
+>>> Bin(14, n=6).tuple
+(0, 0, 1, 1, 1, 0)
+>>> Bin(0x123, n=16).rol(8).hex
+'2301'
 
 Currently, there is only Bin class for big endian integers
 (most significant bits go first in bit strings).
@@ -24,6 +33,8 @@ class Bin:
     >>> Bin(16, n=3)
     Traceback (most recent call last):
     ValueError: integer out of range
+    >>> Bin(b"AB")
+    Bin(16706, n=16)
 
     >>> str(Bin(16))
     '10000'
@@ -51,6 +62,22 @@ class Bin:
     __slots__ = "int", "n"
 
     def __init__(self, spec, n=None):
+        """
+        >>> Bin(1, 4).tuple
+        (0, 0, 0, 1)
+        >>> Bin(8, 4).tuple
+        (1, 0, 0, 0)
+        >>> Bin(16, 4).tuple
+        Traceback (most recent call last):
+        ValueError: integer out of range
+
+        >>> Bin((1, 0, 0, 0)).int
+        8
+        >>> Bin((0, 0, 0, 1)).int
+        1
+        >>> Bin(Bin(123123, 32).tuple).int
+        123123
+        """
         if isinstance(spec, int) or type(spec).__name__ == "Integer":
             self.int = int(spec)
             self.n = n if n is not None else self.int.bit_length()
@@ -59,6 +86,7 @@ class Bin:
             self.n = n if n is not None else spec.n
         elif isinstance(spec, bytes):
             self.int = int.from_bytes(spec, "big")
+            self.n = len(spec) * 8
         else:
             # vector / tuple / list
             assert n is None or n == len(spec)
@@ -73,6 +101,21 @@ class Bin:
     def resize(self, n):
         return Bin(self, n)
 
+    def __index__(self):
+        """
+        Whenever Python needs to losslessly convert the numeric object
+        to an integer object (such as in slicing, or in the built-in bin(),
+        hex() and oct() functions).
+        """
+        return self.int
+
+    def __int__(self):
+        """
+        >>> int(Bin(123))
+        123
+        """
+        return self.int
+
     @classmethod
     def _new(cls, x, n):
         self = object.__new__(cls)
@@ -80,8 +123,10 @@ class Bin:
         self.n = n
         return self
 
-    def __int__(self):
-        return self.int
+    def _coerce_same_n(self, other):
+        if not isinstance(other, Bin):
+            return Bin(other, n=self.n)
+        return other
 
     @property
     def tuple(self):
@@ -106,12 +151,11 @@ class Bin:
     bytes = property(__bytes__)
 
     def __hex__(self):
-        return hex(self.int).lstrip("0x")
+        return hex(self.int).zfill((self.n + 3) // 4).lstrip("0x")
     hex = property(__hex__)
 
     def __eq__(self, other):
-        if not isinstance(other, Bin):
-            other = Bin(other, n=self.n)
+        other = self._coerce_same_n(other)
         if other.n != self.n:
             raise ValueError("Can not compare Bin's with different n")
         return self.int == other.int
@@ -147,26 +191,63 @@ class Bin:
         return self.rol(-n)
 
     def hamming(self):
+        """
+        Hamming weight. Alias: hw
+
+        >>> Bin(0).hamming()
+        0
+        >>> Bin(1).hamming()
+        1
+        >>> Bin(0xffffffff).hamming()
+        32
+        >>> Bin(2**64-1).hamming()
+        64
+        >>> Bin(int("10" * 999, 2)).hamming()
+        999
+        """
         return sum(self.tuple)
     hw = hamming
 
     def parity(self):
+        """
+        Parity of all bits.
+
+        >>> Bin(0).parity()
+        0
+        >>> Bin(1).parity()
+        1
+        >>> Bin(4).parity()
+        1
+        >>> Bin(6).parity()
+        0
+        >>> Bin(2**100).parity()
+        1
+        >>> Bin(2**100 + 1).parity()
+        0
+        >>> Bin(2**100 ^ 7).parity()
+        0
+        >>> Bin(2**100 ^ 3).parity()
+        1
+        """
         return self.hw() & 1
 
     def __and__(self, other):
         other = Bin(other)
         n = max(self.n, other.n)
         return self._new(self.int & other.int, n=n)
+    __rand__ = __and__
 
     def __xor__(self, other):
         other = Bin(other, n=self.n)
         n = max(self.n, other.n)
         return self._new(self.int ^ other.int, n=n)
+    __rxor__ = __xor__
 
     def __or__(self, other):
         other = Bin(other, n=self.n)
         n = max(self.n, other.n)
         return self._new(self.int | other.int, n=n)
+    __ror__ = __or__
 
     def __lshift__(self, n):
         y = (self.int << n) & self.mask
@@ -180,8 +261,107 @@ class Bin:
         y = self.int ^ self.mask
         return self._new(y, n=self.n)
 
+    def scalar_bin(self, other):
+        """
+        Dot product in GF(2).
+
+        >>> Bin(0).scalar_bin(0)
+        0
+        >>> Bin(1).scalar_bin(1)
+        1
+        >>> Bin(0xf731).scalar_bin(0xffffff)
+        0
+        >>> Bin(1).scalar_bin(3)
+        1
+        >>> Bin(7).scalar_bin(15)
+        1
+
+        Same as:
+
+        >>> (Bin(7) @ 15) & 1
+        1
+        >>> (Bin(7) & 15).parity()
+        1
+        """
+        return (self & other).parity()
+
+    def scalar_int(self, other):
+        """
+        Dot product in integers. Aliased as overloaded @,
+        similarly to .dot = @ in numpy.
+
+        >>> Bin(0) @ 0
+        0
+        >>> Bin(1) @ 1
+        1
+        >>> Bin(0xf731) @ 0xffffff
+        10
+        >>> Bin(1) @ 3
+        1
+        >>> Bin(7) @ 15
+        3
+
+        Same as:
+
+        >>> (Bin(7) & 15).hw()
+        3
+        """
+        return (self & other).hw()
+
+    # as .dot() = @ in numpy
+    __matmul__ = __rmatmul__ = scalar_int
+
     def bit_product(self, mask):
-        return int(self.x & mask == mask)
+        """
+        Multiply bits selected by mask.
+        (better method name?)
+
+        >>> Bin("101").bit_product("101")
+        1
+        >>> Bin("101").bit_product("100")
+        1
+        >>> Bin("101").bit_product("001")
+        1
+        >>> Bin("101").bit_product("111")
+        0
+
+        >>> Bin("1111").bit_product("1111")
+        1
+        >>> Bin("1111").bit_product("1110")
+        1
+        >>> Bin("1111").bit_product("0111")
+        1
+        >>> Bin("0111").bit_product("1111")
+        0
+        >>> Bin("1110").bit_product("1111")
+        0
+        """
+        mask = self._coerce_same_n(mask)
+        return int(self.int & mask.int == mask.int)
+
+    @classmethod
+    def concat(cls, *args):
+        """
+        Concatenate bitstrings. Classmethod, varargs.
+
+        >>> Bin.concat(Bin(128), Bin(255), Bin(1, n=8)).str
+        '100000001111111100000001'
+        """
+        if not args:
+            return Bin(0, n=0)
+        ret = args[0]
+        for arg in args[1:]:
+            ret = ret._concat1(arg)
+        return ret
+
+    def _concat1(self, other):
+        if not isinstance(other, Bin):
+            raise TypeError(
+                "Can not concatenate to non-Bin instances"
+                "(can not determine width)"
+            )
+        y = (self.int << other.n) | other.int
+        return self._new(y, n=self.n + other.n)
 
 
 def Bin8(x): return Bin(x, n=8)  # noqa
