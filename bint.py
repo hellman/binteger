@@ -113,7 +113,7 @@ class Bin:
         Traceback (most recent call last):
         ValueError: integer out of range
         """
-        return Bin(self, n)
+        return Bin(self.int, n)
 
     def __index__(self):
         """
@@ -140,10 +140,15 @@ class Bin:
         self.n = n
         return self
 
-    def _coerce_same_n(self, other):
+    def _coerce_hint_n(self, other):
         if not isinstance(other, Bin):
             return Bin(other, n=self.n)
         return other
+
+    def _coerce_same_n(self, other):
+        if not isinstance(other, Bin):
+            return Bin(other, n=self.n)
+        return other.resize(self.n)
 
     @property
     def tuple(self):
@@ -188,7 +193,7 @@ class Bin:
         return bin(self.int).zfill(self.n).lstrip("0b")
 
     def __eq__(self, other):
-        other = self._coerce_same_n(other)
+        other = self._coerce_hint_n(other)
         if other.n != self.n:
             raise ValueError("Can not compare Bin's with different n")
         return self.int == other.int
@@ -469,8 +474,54 @@ class Bin:
             idx = int(idx) % self.n
             return 1 & (self.int >> (self.n - 1 - idx))
 
+    def __lt__(self, other):
+        return self.int < other
 
+    def __le__(self, other):
+        return self.int <= other
 
+    def __gt__(self, other):
+        return self.int > other
+
+    def __ge__(self, other):
+        return self.int >= other
+
+    def __bool__(self):
+        """
+        >>> bool(Bin("000"))
+        False
+        >>> bool(Bin("100"))
+        True
+        >>> bool(Bin("101") & 1)
+        True
+        >>> bool(Bin("100") & 1)
+        False
+        """
+        return self.int != 0
+
+    # __setitem__ maybe ?
+    # do we want to keep this immutable?
+
+    def squeeze_by_mask(self, mask):
+        """
+        Keep bits selected by mask and delete the others.
+
+        >>> Bin("10101").squeeze_by_mask("10101").str
+        '111'
+        >>> Bin("10101").squeeze_by_mask("01111").str
+        '0101'
+        """
+        mask = self._coerce_same_n(mask).int
+        res = 0
+        n = 0
+        x = self.int
+        while mask:
+            if mask & 1:
+                res |= (x & 1) << n
+                n += 1
+            mask >>= 1
+            x >>= 1
+        return self._new(res, n=n)
 
 def Bin8(x): return Bin(x, n=8)  # noqa
 def Bin16(x): return Bin(x, n=16)  # noqa
