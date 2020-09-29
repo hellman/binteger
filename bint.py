@@ -78,7 +78,8 @@ class Bin:
         >>> Bin(Bin(123123, 32).tuple).int
         123123
         """
-        if isinstance(spec, int) or type(spec).__name__ == "Integer":
+        # support Sage integers (ZZ) and IntegerMod etc.
+        if isinstance(spec, int) or type(spec).__name__.startswith("Integer"):
             self.int = int(spec)
             self.n = n if n is not None else self.int.bit_length()
         elif isinstance(spec, Bin):
@@ -98,12 +99,49 @@ class Bin:
         if not (0 <= self.int < (1 << self.n)):
             raise ValueError("integer out of range")
 
+    @property
+    def mask(self):
+        return (1 << (self.n)) - 1
+
+    # =========================================================
+    # Creation
+    # =========================================================
+    @classmethod
+    def _new(cls, x, n):
+        self = object.__new__(cls)
+        self.int = int(x)
+        self.n = n
+        return self
+
+    def _coerce_hint_n(self, other):
+        if not isinstance(other, Bin):
+            return Bin(other, n=self.n)
+        return other
+
+    def _coerce_same_n(self, other):
+        if not isinstance(other, Bin):
+            return Bin(other, n=self.n)
+        return other.resize(self.n)
+
+    @classmethod
     def empty(self):
         return self._new(0, 0)
 
     @classmethod
-    def map_list(self, args, n):
-        return [Bin(arg, n) for arg in args]
+    def array(self, args, n=None, ns=None):
+        """
+        Conveniently convert a list of objects with same @n,
+        or an iterable @ns of sizes.
+
+        >>> Bin.concat(*Bin.array((1, 2, 3, 4), 4)).hex
+        '1234'
+        """
+        assert (n is None) ^ (ns is None)
+        if n:
+            return [Bin(arg, n) for arg in args]
+        if ns:
+            return [Bin(arg, n) for arg, n in zip(args, ns)]
+        assert 0
 
     def resize(self, n):
         """
@@ -115,6 +153,9 @@ class Bin:
         """
         return Bin(self.int, n)
 
+    # =========================================================
+    # Output something
+    # =========================================================
     def __index__(self):
         """
         Whenever Python needs to losslessly convert the numeric object
@@ -133,22 +174,8 @@ class Bin:
         """
         return self.int
 
-    @classmethod
-    def _new(cls, x, n):
-        self = object.__new__(cls)
-        self.int = int(x)
-        self.n = n
-        return self
-
-    def _coerce_hint_n(self, other):
-        if not isinstance(other, Bin):
-            return Bin(other, n=self.n)
-        return other
-
-    def _coerce_same_n(self, other):
-        if not isinstance(other, Bin):
-            return Bin(other, n=self.n)
-        return other.resize(self.n)
+    def __len__(self):
+        return self.n
 
     @property
     def tuple(self):
@@ -157,6 +184,12 @@ class Bin:
     @property
     def list(self):
         return list(map(int, bin(self.int).lstrip("0b").zfill(self.n)))
+
+    @property
+    def vector(self):
+        """Only in sage mode. TBD: better imports"""
+        from sage.all import vector, GF
+        return vector(GF(2), self.tuple)
 
     def __iter__(self):
         return iter(self.tuple)
@@ -192,42 +225,74 @@ class Bin:
         """
         return bin(self.int).zfill(self.n).lstrip("0b")
 
+    def __getitem__(self, idx):
+        """
+        >>> Bin(0x1234, 16)[0:4]
+        Bin(1, n=4)
+        >>> Bin(0x1234, 16)[4:12] # 0x23 == 35
+        Bin(35, n=8)
+        >>> Bin(0x1234, 16)[-4:]
+        Bin(4, n=4)
+        >>> Bin("101010")[::2]
+        Bin(7, n=3)
+        >>> Bin("101010")[0]
+        1
+        >>> Bin("101010")[1]
+        0
+        >>> Bin("101010")[2]
+        1
+        """
+        if isinstance(idx, slice):
+            # todo: optimize simple substring slices?
+            # easy to mess up with out of bounds, negative indices, etc. ...
+            return Bin(self.tuple[idx])
+        else:
+            idx = int(idx) % self.n
+            return 1 & (self.int >> (self.n - 1 - idx))
+
+    # __setitem__ maybe ?
+    # do we want to keep this immutable?
+
+    # =========================================================
+    # Comparison
+    # =========================================================
     def __eq__(self, other):
         other = self._coerce_hint_n(other)
         if other.n != self.n:
             raise ValueError("Can not compare Bin's with different n")
         return self.int == other.int
 
-    @property
-    def mask(self):
-        return (1 << (self.n)) - 1
+    def __lt__(self, other):
+        return self.int < other
 
-    def rol(self, n):
+    def __le__(self, other):
+        return self.int <= other
+
+    def __gt__(self, other):
+        return self.int > other
+
+    def __ge__(self, other):
+        return self.int >= other
+
+    def __bool__(self):
         """
-        Rotate left by @n bits
-
-        >>> hex( Bin(0x1234, 16).rol(4).int )
-        '0x2341'
-        >>> hex( Bin(0x1234, 16).rol(12).int )
-        '0x4123'
+        >>> bool(Bin("000"))
+        False
+        >>> bool(Bin("100"))
+        True
+        >>> bool(Bin("101") & 1)
+        True
+        >>> bool(Bin("100") & 1)
+        False
         """
+        return self.int != 0
 
-        n %= self.n
-        x = self.int
-        y = ((x << n) | (x >> (self.n - n))) & self.mask
-        return self._new(y, n=n)
+    def __hash__(self):
+        return hash((self.n, self.int))
 
-    def ror(self, n):
-        """
-        Rotate right by @n bits
-
-        >>> hex( Bin(0x1234, 16).ror(4).int )
-        '0x4123'
-        >>> hex( Bin(0x1234, 16).ror(12).int )
-        '0x2341'
-        """
-        return self.rol(-n)
-
+    # =========================================================
+    # Properties
+    # =========================================================
     def hamming(self):
         """
         Hamming weight. Alias: hw
@@ -268,6 +333,35 @@ class Bin:
         1
         """
         return self.hw() & 1
+
+    # =========================================================
+    # Transformations / operations
+    # =========================================================
+    def rol(self, n):
+        """
+        Rotate left by @n bits
+
+        >>> hex( Bin(0x1234, 16).rol(4).int )
+        '0x2341'
+        >>> hex( Bin(0x1234, 16).rol(12).int )
+        '0x4123'
+        """
+
+        n %= self.n
+        x = self.int
+        y = ((x << n) | (x >> (self.n - n))) & self.mask
+        return self._new(y, n=n)
+
+    def ror(self, n):
+        """
+        Rotate right by @n bits
+
+        >>> hex( Bin(0x1234, 16).ror(4).int )
+        '0x4123'
+        >>> hex( Bin(0x1234, 16).ror(12).int )
+        '0x2341'
+        """
+        return self.rol(-n)
 
     def __and__(self, other):
         other = Bin(other)
@@ -449,59 +543,6 @@ class Bin:
                 x >>= n
             return tuple(ret[::-1])
 
-    def __getitem__(self, idx):
-        """
-        >>> Bin(0x1234, 16)[0:4]
-        Bin(1, n=4)
-        >>> Bin(0x1234, 16)[4:12] # 0x23 == 35
-        Bin(35, n=8)
-        >>> Bin(0x1234, 16)[-4:]
-        Bin(4, n=4)
-        >>> Bin("101010")[::2]
-        Bin(7, n=3)
-        >>> Bin("101010")[0]
-        1
-        >>> Bin("101010")[1]
-        0
-        >>> Bin("101010")[2]
-        1
-        """
-        if isinstance(idx, slice):
-            # todo: optimize simple substring slices?
-            # easy to mess up with out of bounds, negative indices, etc. ...
-            return Bin(self.tuple[idx])
-        else:
-            idx = int(idx) % self.n
-            return 1 & (self.int >> (self.n - 1 - idx))
-
-    def __lt__(self, other):
-        return self.int < other
-
-    def __le__(self, other):
-        return self.int <= other
-
-    def __gt__(self, other):
-        return self.int > other
-
-    def __ge__(self, other):
-        return self.int >= other
-
-    def __bool__(self):
-        """
-        >>> bool(Bin("000"))
-        False
-        >>> bool(Bin("100"))
-        True
-        >>> bool(Bin("101") & 1)
-        True
-        >>> bool(Bin("100") & 1)
-        False
-        """
-        return self.int != 0
-
-    # __setitem__ maybe ?
-    # do we want to keep this immutable?
-
     def squeeze_by_mask(self, mask):
         """
         Keep bits selected by mask and delete the others.
@@ -533,7 +574,7 @@ def test_halves():
     """
     >>> Bin.concat(Bin(0x7, n=4), Bin(0xa, 4)).hex
     '7a'
-    >>> Bin.concat(*Bin.map_list([1, 2, 3, 4, 5, 6, 10], 4)).hex
+    >>> Bin.concat(*Bin.array([1, 2, 3, 4, 5, 6, 10], 4)).hex
     '123456a'
     """
     pass
