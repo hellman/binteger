@@ -350,7 +350,7 @@ class Bin:
         n %= self.n
         x = self.int
         y = ((x << n) | (x >> (self.n - n))) & self.mask
-        return self._new(y, n=n)
+        return self._new(y, n=self.n)
 
     def ror(self, n):
         """
@@ -360,6 +360,8 @@ class Bin:
         '0x4123'
         >>> hex( Bin(0x1234, 16).ror(12).int )
         '0x2341'
+        >>> Bin(1, 16).rol(1).n
+        16
         """
         return self.rol(-n)
 
