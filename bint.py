@@ -538,34 +538,43 @@ class Bin:
         l, r = self.halves()
         return Bin.concat(r, l)
 
-    def split(self, parts=None, sizes=None):
+    def split(self, parts=None, n=None, ns=None):
         """
         Split the bitstring into several parts.
         Either:
         - into @parts same-sized chunks
-        - into parts with sizes given by @sizes
+        - into parts with sizes @n each or given by @ns
 
+        >>> Bin(0x123, 12).split(3) == Bin(0x123, 12).split(parts=3)
+        True
         >>> Bin(0x123, 12).split(parts=3)
         (Bin(1, n=4), Bin(2, n=4), Bin(3, n=4))
-        >>> Bin(0x9821, 16).split(sizes=(4, 4, 8))   # 0x21 == 33
+        >>> Bin(0x9821, 16).split(ns=(4, 4, 8))   # 0x21 == 33
         (Bin(9, n=4), Bin(8, n=4), Bin(33, n=8))
+        >>> Bin(0x9821, 16).split(n=4)
+        (Bin(9, n=4), Bin(8, n=4), Bin(2, n=4), Bin(1, n=4))
         """
-        assert (parts is not None) ^ (sizes is not None)
-        if parts:
-            assert self.n % parts == 0
+        assert 1 == (parts is not None) + (ns is not None) + (n is not None)
+        if parts or n:
+            if parts:
+                assert self.n % parts == 0
+                n = self.n // parts
+            else:
+                assert self.n % n == 0
+                parts = self.n // n
+
             ret = []
-            n = self.n // parts
             mask = (1 << n) - 1
             x = self.int
             for i in range(parts):
                 ret.append(self._new(x & mask, n=n))
                 x >>= n
             return tuple(ret[::-1])
-        if sizes:
-            assert sum(sizes) == self.n
+        if ns:
+            assert sum(ns) == self.n
             ret = []
             x = self.int
-            for n in reversed(sizes):
+            for n in reversed(ns):
                 mask = (1 << n) - 1
                 ret.append(self._new(x & mask, n=n))
                 x >>= n
@@ -610,6 +619,8 @@ def test_halves():
     >>> Bin.concat(Bin(0x7, n=4), Bin(0xa, 4)).hex
     '7a'
     >>> Bin.concat(*Bin.array(1, 2, 3, 4, 5, 6, 10, n=4)).hex
+    '123456a'
+    >>> Bin.concat(1, 2, 3, 4, 5, 6, 10, n=4).hex
     '123456a'
     """
     pass
