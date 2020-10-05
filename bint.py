@@ -21,6 +21,7 @@ Currently, there is only Bin class for big endian integers
 
 If needed, something like BinLE will be defined later for little endians.
 """
+from functools import reduce
 
 
 class Bin:
@@ -116,7 +117,22 @@ class Bin:
         self.n = n
         return self
 
-    def _coerce_hint_n(self, other):
+    def copy(self):
+        return self._new(self.int, self.n)
+
+    @classmethod
+    def _coerce_hint_n(self, other, n):
+        if not isinstance(other, Bin):
+            return Bin(other, n=n)
+        return other
+
+    @classmethod
+    def _coerce_force_n(self, other, n):
+        if not isinstance(other, Bin):
+            return Bin(other, n=n)
+        return other.resize(n)
+
+    def _coerce_hint_same_n(self, other):
         if not isinstance(other, Bin):
             return Bin(other, n=self.n)
         return other
@@ -131,20 +147,22 @@ class Bin:
         return self._new(0, 0)
 
     @classmethod
-    def array(self, args, n=None, ns=None):
+    def array(self, *args, n=None, ns=None):
         """
         Conveniently convert a list of objects with same @n,
         or an iterable @ns of sizes.
 
-        >>> Bin.concat(*Bin.array((1, 2, 3, 4), 4)).hex
+        >>> Bin.concat(*Bin.array(1, 2, 3, 4, n=4)).hex
         '1234'
+        >>> Bin.concat(*Bin.array(1, 2, 3, 4, ns=(4, 8, 4, 16))).hex
+        '10230004'
         """
-        assert (n is None) ^ (ns is None)
+        assert (n is None) or (ns is None)
         if n:
             return [Bin(arg, n) for arg in args]
         if ns:
             return [Bin(arg, n) for arg, n in zip(args, ns)]
-        assert 0
+        return [Bin(arg) for arg in args]
 
     def resize(self, n):
         """
@@ -154,6 +172,8 @@ class Bin:
         Traceback (most recent call last):
         ValueError: integer out of range
         """
+        if n is None:
+            return self.copy()
         return Bin(self.int, n)
 
     # =========================================================
@@ -260,7 +280,7 @@ class Bin:
     # Comparison
     # =========================================================
     def __eq__(self, other):
-        other = self._coerce_hint_n(other)
+        other = self._coerce_hint_same_n(other)
         if other.n != self.n:
             raise ValueError("Can not compare Bin's with different n")
         return self.int == other.int
@@ -477,26 +497,29 @@ class Bin:
         return int(self.int & mask.int == mask.int)
 
     @classmethod
-    def concat(cls, *args):
+    def concat(cls, *args, n=None):
         """
         Concatenate bitstrings. Classmethod, varargs.
+        :param:
 
         >>> Bin.concat(Bin(128), Bin(255), Bin(1, n=8)).str
         '100000001111111100000001'
+        >>> Bin.concat(1, 2, 3, 4).str
+        '11011100'
+        >>> Bin.concat(1, 2, 3, 4, n=3).str
+        '001010011100'
+        >>> Bin.concat(1, 2, 3, 15, n=4).str
+        '0001001000111111'
+        >>> Bin.concat(1, 2, 3, 16, n=4).str
+        Traceback (most recent call last):
+        ValueError: integer out of range
         """
         if not args:
             return Bin(0, n=0)
-        ret = args[0]
-        for arg in args[1:]:
-            ret = ret._concat1(arg)
-        return ret
+        args = cls.array(*args, n=n)
+        return reduce(lambda a, b: a._concat1(b), args)
 
-    def _concat1(self, other):
-        if not isinstance(other, Bin):
-            raise TypeError(
-                "Can not concatenate to non-Bin instances"
-                "(can not determine width)"
-            )
+    def _concat1(self, other, n=None):
         y = (self.int << other.n) | other.int
         return self._new(y, n=self.n + other.n)
 
@@ -586,7 +609,7 @@ def test_halves():
     """
     >>> Bin.concat(Bin(0x7, n=4), Bin(0xa, 4)).hex
     '7a'
-    >>> Bin.concat(*Bin.array([1, 2, 3, 4, 5, 6, 10], 4)).hex
+    >>> Bin.concat(*Bin.array(1, 2, 3, 4, 5, 6, 10, n=4)).hex
     '123456a'
     """
     pass
