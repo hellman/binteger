@@ -58,6 +58,9 @@ class Bin:
 
     >>> Bin("1101") == Bin((1, 1, 0, 1)) == Bin([1, 1, 0, 1]) == Bin(13)
     True
+    >>> Bin([0, 1, 2])
+    Traceback (most recent call last):
+    ValueError: integer 2 is not binary
     """
     __slots__ = "int", "n"
 
@@ -93,7 +96,7 @@ class Bin:
             assert n is None or n == len(spec)
             self.n = len(spec)
             self.int = sum(
-                int(b) << (self.n - 1 - i)
+                _int01(b) << (self.n - 1 - i)
                 for i, b in enumerate(spec)
             )
         if not (0 <= self.int < (1 << self.n)):
@@ -570,6 +573,13 @@ def Bin8(x): return Bin(x, n=8)  # noqa
 def Bin16(x): return Bin(x, n=16)  # noqa
 def Bin32(x): return Bin(x, n=32)  # noqa
 def Bin64(x): return Bin(x, n=64)  # noqa
+
+
+def _int01(v):
+    w = int(v)
+    if not 0 <= w <= 1:
+        raise ValueError("integer %d is not binary" % w)
+    return w
 
 
 def test_halves():
