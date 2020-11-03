@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bint"
-version = "0.5.1"
+version = "0.6.1"
 description = "Binary INTteger representation toolkit"
 authors = ["hellman <hellman@affine.group>"]
 

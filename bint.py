@@ -497,7 +497,7 @@ class Bin:
         return int(self.int & mask.int == mask.int)
 
     @classmethod
-    def concat(cls, *args, n=None):
+    def concat(cls, *args, n=None, ns=None):
         """
         Concatenate bitstrings. Classmethod, varargs.
         :param:
@@ -516,7 +516,7 @@ class Bin:
         """
         if not args:
             return Bin(0, n=0)
-        args = cls.array(*args, n=n)
+        args = cls.array(*args, n=n, ns=ns)
         return reduce(lambda a, b: a._concat1(b), args)
 
     def _concat1(self, other, n=None):
