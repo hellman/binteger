@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "bint"
-version = "0.6.1"
-description = "Binary INTteger representation toolkit"
+name = "binteger"
+version = "0.6.2"
+description = "Binary INTeger representation toolkit"
 authors = ["hellman <hellman@affine.group>"]
 
 [tool.poetry.dependencies]
