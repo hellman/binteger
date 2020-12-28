@@ -222,7 +222,7 @@ class Bin:
     str = property(__str__)
 
     def __repr__(self):
-        return "Bin(%d, n=%d)" % (self.int, self.n)
+        return f"Bin(0b{str(self)}, n={self.n})"
 
     @property
     def bytes(self):
