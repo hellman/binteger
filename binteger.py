@@ -103,6 +103,17 @@ class Bin:
         if not (0 <= self.int < (1 << self.n)):
             raise ValueError("integer out of range")
 
+    def support(self):
+        """
+        tuple of i such that self[i] = 1
+
+        >>> Bin(0x1234, 16).support()
+        (3, 6, 10, 11, 13)
+        >>> Bin(0x1234).support()
+        (0, 3, 7, 8, 10)
+        """
+        return tuple(i for i, c in enumerate(self.tuple) if c)
+
     @property
     def mask(self):
         return (1 << (self.n)) - 1
