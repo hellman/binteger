@@ -324,6 +324,18 @@ class Bin:
     def __hash__(self):
         return hash((self.n, self.int))
 
+    def is_prec(self, other):
+        return self.int & other == self.int and self.int != other
+
+    def is_preceq(self, other):
+        return self.int & other == self.int
+
+    def is_succ(self, other):
+        return self.int & other == other and self.int != other
+
+    def is_succeq(self, other):
+        return self.int & other == other
+
     # =========================================================
     # Properties
     # =========================================================
