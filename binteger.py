@@ -35,7 +35,7 @@ class Bin:
     Traceback (most recent call last):
     ValueError: integer out of range
     >>> Bin(b"AB")
-    Bin(16706, n=16)
+    Bin(0b0100000101000010, n=16)
 
     >>> str(Bin(16))
     '10000'
@@ -55,7 +55,7 @@ class Bin:
     >>> str(Bin(16))
     '10000'
     >>> repr(Bin(16))
-    'Bin(16, n=5)'
+    'Bin(0b10000, n=5)'
 
     >>> Bin("1101") == Bin((1, 1, 0, 1)) == Bin([1, 1, 0, 1]) == Bin(13)
     True
@@ -178,7 +178,7 @@ class Bin:
     def resize(self, n):
         """
         >>> Bin(3).resize(10)
-        Bin(3, n=10)
+        Bin(0b0000000011, n=10)
         >>> Bin(3).resize(1)
         Traceback (most recent call last):
         ValueError: integer out of range
@@ -262,13 +262,13 @@ class Bin:
     def __getitem__(self, idx):
         """
         >>> Bin(0x1234, 16)[0:4]
-        Bin(1, n=4)
+        Bin(0b0001, n=4)
         >>> Bin(0x1234, 16)[4:12] # 0x23 == 35
-        Bin(35, n=8)
+        Bin(0b00100011, n=8)
         >>> Bin(0x1234, 16)[-4:]
-        Bin(4, n=4)
+        Bin(0b0100, n=4)
         >>> Bin("101010")[::2]
-        Bin(7, n=3)
+        Bin(0b111, n=3)
         >>> Bin("101010")[0]
         1
         >>> Bin("101010")[1]
@@ -549,7 +549,7 @@ class Bin:
     def halves(self):
         """
         >>> Bin(0x79, 8).halves()
-        (Bin(7, n=4), Bin(9, n=4))
+        (Bin(0b0111, n=4), Bin(0b1001, n=4))
         """
         return self.split(parts=2)
 
@@ -571,11 +571,11 @@ class Bin:
         >>> Bin(0x123, 12).split(3) == Bin(0x123, 12).split(parts=3)
         True
         >>> Bin(0x123, 12).split(parts=3)
-        (Bin(1, n=4), Bin(2, n=4), Bin(3, n=4))
+        (Bin(0b0001, n=4), Bin(0b0010, n=4), Bin(0b0011, n=4))
         >>> Bin(0x9821, 16).split(ns=(4, 4, 8))   # 0x21 == 33
-        (Bin(9, n=4), Bin(8, n=4), Bin(33, n=8))
+        (Bin(0b1001, n=4), Bin(0b1000, n=4), Bin(0b00100001, n=8))
         >>> Bin(0x9821, 16).split(n=4)
-        (Bin(9, n=4), Bin(8, n=4), Bin(2, n=4), Bin(1, n=4))
+        (Bin(0b1001, n=4), Bin(0b1000, n=4), Bin(0b0010, n=4), Bin(0b0001, n=4))
         """
         assert 1 == (parts is not None) + (ns is not None) + (n is not None)
         if parts or n:
