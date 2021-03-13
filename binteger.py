@@ -81,6 +81,8 @@ class Bin:
         1
         >>> Bin(Bin(123123, 32).tuple).int
         123123
+        >>> Bin({1, 4, 5, 6}, 8)
+        Bin(0b01001110, n=8)
         """
         # support Sage integers (ZZ) and IntegerMod etc.
         if isinstance(spec, int) or type(spec).__name__.startswith("Integer"):
@@ -92,6 +94,11 @@ class Bin:
         elif isinstance(spec, bytes):
             self.int = int.from_bytes(spec, "big")
             self.n = len(spec) * 8
+        elif isinstance(spec, (set, frozenset)):
+            if n is None:
+                raise ValueError("n must be specified for set-of-indexes spec")
+            self.int = sum(2**(n-1-i) for i in spec)
+            self.n = n if n is not None else self.int.bit_length()
         else:
             # vector / tuple / list
             assert n is None or n == len(spec)
