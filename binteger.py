@@ -110,13 +110,14 @@ class Bin:
         if not (0 <= self.int < (1 << self.n)):
             raise ValueError("integer out of range")
 
+    @property
     def support(self):
         """
         tuple of i such that self[i] = 1
 
-        >>> Bin(0x1234, 16).support()
+        >>> Bin(0x1234, 16).support
         (3, 6, 10, 11, 13)
-        >>> Bin(0x1234).support()
+        >>> Bin(0x1234).support
         (0, 3, 7, 8, 10)
         """
         return tuple(i for i, c in enumerate(self.tuple) if c)
@@ -220,11 +221,23 @@ class Bin:
 
     @property
     def tuple(self):
-        return tuple(map(int, bin(self.int).lstrip("0b").zfill(self.n)))
+        """
+        >>> Bin(0x123).tuple
+        (1, 0, 0, 1, 0, 0, 0, 1, 1)
+        >>> Bin(0x123, 10).tuple
+        (0, 1, 0, 0, 1, 0, 0, 0, 1, 1)
+        """
+        return tuple(map(int, self.bin))
 
     @property
     def list(self):
-        return list(map(int, bin(self.int).lstrip("0b").zfill(self.n)))
+        """
+        >>> Bin(0x123).list
+        [1, 0, 0, 1, 0, 0, 0, 1, 1]
+        >>> Bin(0x123, 10).list
+        [0, 1, 0, 0, 1, 0, 0, 0, 1, 1]
+        """
+        return list(map(int, self.bin))
 
     @property
     def vector(self):
@@ -255,16 +268,24 @@ class Bin:
         """
         >>> Bin(0xabc, 12).hex
         'abc'
+        >>> Bin(0xabc, 13).hex
+        '0abc'
+        >>> Bin(0xabc, 16).hex
+        '0abc'
         """
-        return hex(self.int).zfill((self.n + 3) // 4).lstrip("0x")
+        return f"{self.int:x}".zfill((self.n + 3) // 4)
 
     @property
     def bin(self):
         """
         >>> Bin(0xabc, 12).bin
         '101010111100'
+        >>> Bin(0xabc, 13).bin
+        '0101010111100'
+        >>> Bin(0xabc, 16).bin
+        '0000101010111100'
         """
-        return bin(self.int).zfill(self.n).lstrip("0b")
+        return f"{self.int:b}".zfill(self.n)
 
     def __getitem__(self, idx):
         """
@@ -346,46 +367,48 @@ class Bin:
     # =========================================================
     # Properties
     # =========================================================
-    def hamming(self):
+    @property
+    def weight(self):
         """
-        Hamming weight. Alias: hw
+        Hamming weight. Aliases: hw, wt
 
-        >>> Bin(0).hamming()
+        >>> Bin(0).weight
         0
-        >>> Bin(1).hamming()
+        >>> Bin(1).weight
         1
-        >>> Bin(0xffffffff).hamming()
+        >>> Bin(0xffffffff).weight
         32
-        >>> Bin(2**64-1).hamming()
+        >>> Bin(2**64-1).weight
         64
-        >>> Bin(int("10" * 999, 2)).hamming()
+        >>> Bin(int("10" * 999, 2)).weight
         999
         """
         return sum(self.tuple)
-    hw = hamming
+    wt = hw = weight
 
+    @property
     def parity(self):
         """
         Parity of all bits.
 
-        >>> Bin(0).parity()
+        >>> Bin(0).parity
         0
-        >>> Bin(1).parity()
+        >>> Bin(1).parity
         1
-        >>> Bin(4).parity()
+        >>> Bin(4).parity
         1
-        >>> Bin(6).parity()
+        >>> Bin(6).parity
         0
-        >>> Bin(2**100).parity()
+        >>> Bin(2**100).parity
         1
-        >>> Bin(2**100 + 1).parity()
+        >>> Bin(2**100 + 1).parity
         0
-        >>> Bin(2**100 ^ 7).parity()
+        >>> Bin(2**100 ^ 7).parity
         0
-        >>> Bin(2**100 ^ 3).parity()
+        >>> Bin(2**100 ^ 3).parity
         1
         """
-        return self.hw() & 1
+        return self.weight & 1
 
     # =========================================================
     # Transformations / operations
@@ -467,10 +490,10 @@ class Bin:
 
         >>> (Bin(7) @ 15) & 1
         1
-        >>> (Bin(7) & 15).parity()
+        >>> (Bin(7) & 15).parity
         1
         """
-        return (self & other).parity()
+        return (self & other).parity
 
     def scalar_int(self, other):
         """
@@ -490,10 +513,10 @@ class Bin:
 
         Same as:
 
-        >>> (Bin(7) & 15).hw()
+        >>> (Bin(7) & 15).weight
         3
         """
-        return (self & other).hw()
+        return (self & other).weight
 
     # as .dot() = @ in numpy
     __matmul__ = __rmatmul__ = scalar_int
