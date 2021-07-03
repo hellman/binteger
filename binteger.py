@@ -348,17 +348,19 @@ class Bin:
             raise ValueError("Can not compare Bin's with different n")
         return self.int == other.int
 
-    def __lt__(self, other):
-        return self.int < other
+    # disabled because ambiguous (with prec)
 
-    def __le__(self, other):
-        return self.int <= other
+    # def __lt__(self, other):
+    #     return self.int < other
 
-    def __gt__(self, other):
-        return self.int > other
+    # def __le__(self, other):
+    #     return self.int <= other
 
-    def __ge__(self, other):
-        return self.int >= other
+    # def __gt__(self, other):
+    #     return self.int > other
+
+    # def __ge__(self, other):
+    #     return self.int >= other
 
     def __bool__(self):
         """
