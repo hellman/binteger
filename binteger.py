@@ -110,6 +110,30 @@ class Bin:
         if not (0 <= self.int < (1 << self.n)):
             raise ValueError("integer out of range")
 
+    @classmethod
+    def unit(cls, i, n):
+        """
+        >>> Bin.unit(0, 5)
+        Bin(0b10000, n=5)
+        >>> Bin.unit(3, 5)
+        Bin(0b00010, n=5)
+        >>> Bin.unit(4, 5)
+        Bin(0b00001, n=5)
+        >>> Bin.unit(-5, 5)
+        Bin(0b10000, n=5)
+        >>> Bin.unit(-1, 5)
+        Bin(0b00001, n=5)
+        >>> Bin.unit(5, 5)
+        Traceback (most recent call last):
+        ValueError: integer out of range
+        >>> Bin.unit(-6, 5)
+        Traceback (most recent call last):
+        ValueError: integer out of range
+        """
+        if not (-n <= i < n):
+            raise ValueError("integer out of range")
+        return cls(1 << (n - 1 - i % n), n)
+
     @property
     def support(self):
         """
