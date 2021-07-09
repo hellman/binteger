@@ -2,6 +2,14 @@
 `binteger` is a toolkit for manipulating integers in their binary
 (fixed-width) representation (big endian - most significant bits go first).
 
+**Documentation**: https://binteger.readthedocs.io/
+
+**Code**: https://github.com/hellman/binteger
+
+**Installation**::
+
+    pip install binteger
+
 This module is quite similar to `bitstring` (at PyPI):
 https://github.com/scott-griffiths/bitstring
 which is pretty awesome.
