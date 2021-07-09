@@ -8,6 +8,7 @@ This module is quite similar to [bitstring](https://github.com/scott-griffiths/b
 The difference is that the API is a bit more compact
 to aid simple conversions, such as:
 
+```py
 >>> from binteger import Bin
 >>> Bin(0x4142).bytes
 b'AB'
@@ -17,7 +18,7 @@ True
 (0, 0, 1, 1, 1, 0)
 >>> Bin(0x123, n=16).rol(8).hex
 '2301'
-
+```
 
 ## Installation
 
