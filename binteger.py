@@ -19,26 +19,49 @@ True
 '2301'
 
 .. warning:: `binteger` is optimized for *convenience of use*,
-rather than for performance.
+              rather than for performance.
 """
 from functools import reduce
 
 
 class Bin:
-    """
-    Represents an integer in a fixed-width binary \
-    and provides tools for working on binary representation.
+    """An integer with a fixed-width binary representation.
+
+    Provides tools for working on binary representation.
+
+    Attributes
+    ----------
+    int: int
+        Integer representation.
+    n: int
+        Width of the binary representation.
+
+    Examples
+    --------
+    Creation:
 
     >>> Bin(16).n
     5
+    >>> Bin(16).int
+    16
     >>> Bin(16, n=3)
     Traceback (most recent call last):
     ValueError: integer out of range
-    >>> Bin(b"AB")
+
+    >>> Bin(b"AB")  # bytes are unpacked
     Bin(0b0100000101000010, n=16)
+    >>> Bin("010")  # strings must be the binary representation
+    Bin(0b010, n=3)
+    >>> Bin("AB")  # strings must be 01-formed
+    Traceback (most recent call last):
+    ValueError: invalid literal for int() with base 10: 'A'
+
+    Outputting (formatting):
 
     >>> str(Bin(16))
     '10000'
+    >>> repr(Bin(16))
+    'Bin(0b10000, n=5)'
     >>> str(Bin(16, 8))
     '00010000'
 
@@ -52,18 +75,14 @@ class Bin:
     13
     >>> Bin("1110001101").hex
     '38d'
-    >>> str(Bin(16))
-    '10000'
-    >>> repr(Bin(16))
-    'Bin(0b10000, n=5)'
-
     >>> Bin("1101") == Bin((1, 1, 0, 1)) == Bin([1, 1, 0, 1]) == Bin(13)
     True
+
     >>> Bin([0, 1, 2])
     Traceback (most recent call last):
     ValueError: integer 2 is not binary
     """
-    __slots__ = "int", "n"
+    __slots__ = "int", "n"  #: :meta private:
 
     def __init__(self, spec, n=None):
         """
@@ -111,8 +130,43 @@ class Bin:
             raise ValueError("integer out of range")
 
     @classmethod
-    def unit(cls, i, n):
+    def empty(self, n=0):
+        """Create empty :class:`Bin`.
+
+        >>> Bin.empty(0)
+        Bin(0b0, n=0)
+        >>> Bin.empty(4)
+        Bin(0b0000, n=4)
         """
+        n = _check_n(n)
+        return self._new(0, n)
+
+    @classmethod
+    def full(self, n):
+        """Create full :class:`Bin` of width `n`.
+
+        >>> Bin.full(0)
+        Bin(0b0, n=0)
+        >>> Bin.full(4)
+        Bin(0b1111, n=4)
+        """
+        n = _check_n(n)
+        return self._new(2**n-1, n)
+
+    @classmethod
+    def unit(cls, i, n):
+        r""":class:`Bin` integer only with bit at index `i` set
+        (equals :math:`2^{n-1-(i\mod n)}`)
+
+        Parameters
+        ----------
+        i : int
+            The index, requires :math:`-n \le i < n`.
+        n : int
+            The width.
+
+        Examples
+        --------
         >>> Bin.unit(0, 5)
         Bin(0b10000, n=5)
         >>> Bin.unit(3, 5)
@@ -135,20 +189,9 @@ class Bin:
         return cls(1 << (n - 1 - i % n), n)
 
     @property
-    def support(self):
-        """
-        tuple of i such that self[i] = 1
-
-        >>> Bin(0x1234, 16).support
-        (3, 6, 10, 11, 13)
-        >>> Bin(0x1234).support
-        (0, 3, 7, 8, 10)
-        """
-        return tuple(i for i, c in enumerate(self.tuple) if c)
-
-    @property
     def mask(self):
-        return (1 << (self.n)) - 1
+        """Bin: Binary mask for the full width."""
+        return self._new((1 << (self.n)) - 1, self.n)
 
     # =========================================================
     # Creation
@@ -186,15 +229,14 @@ class Bin:
         return other.resize(self.n)
 
     @classmethod
-    def empty(self):
-        return self._new(0, 0)
-
-    @classmethod
     def array(self, *args, n=None, ns=None):
-        """
-        Conveniently convert a list of objects with same @n,
-        or an iterable @ns of sizes.
+        """Convert a list of objects to a list of :class:`Bin`
+        with the same `n`, or an iterable `ns` of sizes.
 
+        >>> Bin.array(1, 2, 3, 4, n=4)
+        [Bin(0b0001, n=4), Bin(0b0010, n=4), Bin(0b0011, n=4), Bin(0b0100, n=4)]
+        >>> Bin.array(1, 2, 3, 4, ns=(1,2,3,4))
+        [Bin(0b1, n=1), Bin(0b10, n=2), Bin(0b011, n=3), Bin(0b0100, n=4)]
         >>> Bin.concat(*Bin.array(1, 2, 3, 4, n=4)).hex
         '1234'
         >>> Bin.concat(*Bin.array(1, 2, 3, 4, ns=(4, 8, 4, 16))).hex
@@ -207,17 +249,27 @@ class Bin:
             return [Bin(arg, n) for arg, n in zip(args, ns)]
         return [Bin(arg) for arg in args]
 
-    def resize(self, n):
-        """
+    def resize(self, n, truncate=False):
+        """Change the width of the integer
+        (`truncate` must be set to True to force truncation,
+        otherwise an Exceptino will be raised if doesn't fit).
+
+        Examples
+        --------
         >>> Bin(3).resize(10)
         Bin(0b0000000011, n=10)
         >>> Bin(3).resize(1)
         Traceback (most recent call last):
         ValueError: integer out of range
+        >>> Bin(3).resize(1, truncate=True)
+        Bin(0b1, n=1)
         """
-        if n is None:
-            return self.copy()
-        return Bin(self.int, n)
+        n = _check_n(n)
+        if truncate:
+            mask = (1 << n) - 1
+            return Bin(self.int & mask, n)
+        else:
+            return Bin(self.int, n)
 
     # =========================================================
     # Output something
@@ -245,7 +297,10 @@ class Bin:
 
     @property
     def tuple(self):
-        """
+        """Tuple of the binary representation.
+
+        Examples
+        --------
         >>> Bin(0x123).tuple
         (1, 0, 0, 1, 0, 0, 0, 1, 1)
         >>> Bin(0x123, 10).tuple
@@ -255,7 +310,10 @@ class Bin:
 
     @property
     def list(self):
-        """
+        """List of the binary representation.
+
+        Examples
+        --------
         >>> Bin(0x123).list
         [1, 0, 0, 1, 0, 0, 0, 1, 1]
         >>> Bin(0x123, 10).list
@@ -265,14 +323,29 @@ class Bin:
 
     @property
     def vector(self):
-        """Only in sage mode. TBD: better imports"""
+        """GF(2)-vector of the binary representation.
+
+        .. warning: Only in sage mode. TBD: better imports
+        """
         from sage.all import vector, GF
         return vector(GF(2), self.tuple)
+
+    @property
+    def support(self):
+        """Tuple of indices `i` such that bits with index `i` is set.
+
+        >>> Bin(0x1234, 16).support
+        (3, 6, 10, 11, 13)
+        >>> Bin(0x1234).support
+        (0, 3, 7, 8, 10)
+        """
+        return tuple(i for i, c in enumerate(self.tuple) if c)
 
     def __iter__(self):
         return iter(self.tuple)
 
     def __str__(self):
+        """01-string binary representation."""
         return "".join("%d" % v for v in self.tuple)
     str = property(__str__)
 
@@ -282,6 +355,8 @@ class Bin:
     @property
     def bytes(self):
         r"""
+        Bytes representation (big-endian).
+
         >>> Bin(0x4142, 24).bytes
         b'\x00AB'
         """
@@ -289,7 +364,8 @@ class Bin:
 
     @property
     def hex(self):
-        """
+        """Hexadecimal representation.
+
         >>> Bin(0xabc, 12).hex
         'abc'
         >>> Bin(0xabc, 13).hex
@@ -395,8 +471,8 @@ class Bin:
     # =========================================================
     @property
     def weight(self):
-        """
-        Hamming weight. Aliases: hw, wt
+        """Hamming weight.
+        (Aliases: :attr:`hw`, :attr:`wt`).
 
         >>> Bin(0).weight
         0
@@ -498,8 +574,7 @@ class Bin:
         return self._new(y, n=self.n)
 
     def scalar_bin(self, other):
-        """
-        Dot product in GF(2).
+        """Dot product in GF(2).
 
         >>> Bin(0).scalar_bin(0)
         0
@@ -522,8 +597,7 @@ class Bin:
         return (self & other).parity
 
     def scalar_int(self, other):
-        """
-        Dot product in integers. Aliased as overloaded @,
+        """Dot product in integers. Aliased as overloaded @,
         similarly to .dot = @ in numpy.
 
         >>> Bin(0) @ 0
@@ -663,6 +737,13 @@ class Bin:
         """
         Keep bits selected by mask and delete the others.
 
+        Parameters
+        ----------
+        mask: :class:`Bin` or int or str
+            Mask for squeeze, will be converted to ``Bin(..., self.n)``
+
+        Examples
+        --------
         >>> Bin("10101").squeeze_by_mask("10101").str
         '111'
         >>> Bin("10101").squeeze_by_mask("01111").str
@@ -680,10 +761,23 @@ class Bin:
             x >>= 1
         return self._new(res, n=n)
 
-def Bin8(x): return Bin(x, n=8)  # noqa
-def Bin16(x): return Bin(x, n=16)  # noqa
-def Bin32(x): return Bin(x, n=32)  # noqa
-def Bin64(x): return Bin(x, n=64)  # noqa
+
+def Bin8(x):
+    """Fixed-width 8-bit :class:`Bin` (shortcut to ``Bin(x, 8)``)   ."""
+    return Bin(x, n=8)
+
+def Bin16(x):
+    """Fixed-width 16-bit :class:`Bin` (shortcut to ``Bin(x, 16)``) ."""
+    return Bin(x, n=16)
+
+def Bin32(x):
+    """Fixed-width 32-bit :class:`Bin` (shortcut to ``Bin(x, 32)``) ."""
+    return Bin(x, n=32)
+
+def Bin64(x):
+    """Fixed-width 64-bit :class:`Bin` (shortcut to ``Bin(x, 64)``) ."""
+    return Bin(x, n=64)
+
 
 
 def _int01(v):
@@ -693,7 +787,14 @@ def _int01(v):
     return w
 
 
-def test_halves():
+def _check_n(n):
+    n = int(n)
+    if n < 0:
+        raise ValueError("Negative width?")
+    return n
+
+
+def _test_halves():
     """
     >>> Bin.concat(Bin(0x7, n=4), Bin(0xa, 4)).hex
     '7a'
