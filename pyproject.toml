@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "binteger"
-version = "0.8.0"
+version = "0.9.0"
 description = "Binary INTeger representation toolkit"
 authors = ["hellman <hellman@affine.group>"]
 
