@@ -9,6 +9,7 @@ which is pretty awesome.
 The difference is that the API is a bit more compact
 to aid simple conversions, such as:
 
+>>> from binteger import Bin
 >>> Bin(0x4142).bytes
 b'AB'
 >>> Bin(b'AB').int == 0x4142
@@ -28,6 +29,16 @@ class Bin:
     """An integer with a fixed-width binary representation.
 
     Provides tools for working on binary representation.
+
+    Parameters
+    ----------
+    spec:
+        Specifier for the integer:
+        int,
+        or list/tuple/str of 0/1 (binary representation),
+        or bytes (to be unpacked).
+    n: int, optional
+        Width of the binary representation.
 
     Attributes
     ----------
@@ -82,7 +93,7 @@ class Bin:
     Traceback (most recent call last):
     ValueError: integer 2 is not binary
     """
-    __slots__ = "int", "n"  #: :meta private:
+    __slots__ = "int", "n"
 
     def __init__(self, spec, n=None):
         """

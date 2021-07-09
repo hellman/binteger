@@ -1,6 +1,9 @@
 binteger module
 ===============
 
+.. automodule:: binteger
+   :exclude-members: Bin
+
 .. autoclass:: binteger.Bin
    :exclude-members: hw,wt
    :private-members: str
@@ -18,7 +21,6 @@ binteger module
 Fixed-width aliases
 -------------------
 
-"""Fixed-width 8-bit shortcut."""
 .. autofunction:: binteger.Bin8
 .. autofunction:: binteger.Bin16
 .. autofunction:: binteger.Bin32
