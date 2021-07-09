@@ -1,4 +1,4 @@
-# binteger - t
+# binteger
 
 `binteger` is a small toolkit for manipulating integers in their binary
 (fixed-width) representation (big endian - most significant bits go first).
