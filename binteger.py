@@ -1,11 +1,13 @@
 """
-This module is very similar to bitstring (at PyPI):
+`binteger` is a toolkit for manipulating integers in their binary
+(fixed-width) representation (big endian - most significant bits go first).
+
+This module is quite similar to `bitstring` (at PyPI):
 https://github.com/scott-griffiths/bitstring
 which is pretty awesome.
 
-The difference is that this module focuses on integers and stores
-an integer internally, which can save time on some operations.
-Furthermore, the API is a bit more compact to aid simple conversions, such as:
+The difference is that the API is a bit more compact
+to aid simple conversions, such as:
 
 >>> Bin(0x4142).bytes
 b'AB'
@@ -16,10 +18,8 @@ True
 >>> Bin(0x123, n=16).rol(8).hex
 '2301'
 
-Currently, there is only Bin class for big endian integers
-(most significant bits go first in bit strings).
-
-If needed, something like BinLE will be defined later for little endians.
+.. warning:: `binteger` is optimized for *convenience of use*,
+rather than for performance.
 """
 from functools import reduce
 
