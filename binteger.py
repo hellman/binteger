@@ -471,7 +471,15 @@ class Bin:
         return self.int != 0
 
     def __hash__(self):
-        return hash((self.n, self.int))
+        """
+        Hash matches that of underlying int to allow reusing Bin as dict keys
+
+        >>> d = {10: 123}; d[Bin(10, 5)] == d[Bin(10, 100)] == 123
+        True
+        >>> hash(100) == hash(Bin(100, 7)) == hash(Bin(100, 10))
+        True
+        """
+        return hash(self.int)
 
     def is_prec(self, other):
         return self.int & other == self.int and self.int != other
