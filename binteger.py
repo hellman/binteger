@@ -443,19 +443,35 @@ class Bin:
             raise ValueError("Can not compare Bin's with different n")
         return self.int == other.int
 
-    # disabled because ambiguous (with prec)
+    def __lt__(self, other):
+        """
+        >>> Bin(3, 5) < Bin(4, 5)
+        True
+        >>> Bin(3, 5) < Bin(3, 5)
+        False
+        >>> Bin(4, 5) < Bin(3, 5)
+        False
+        >>> Bin(3, 5) < 4
+        True
+        >>> Bin(3, 5) < 3
+        False
+        >>> Bin(4, 5) < 3
+        False
+        """
+        other = self._coerce_same_n(other)
+        return self.int < other.int
 
-    # def __lt__(self, other):
-    #     return self.int < other
+    def __le__(self, other):
+        other = self._coerce_same_n(other)
+        return self.int <= other.int
 
-    # def __le__(self, other):
-    #     return self.int <= other
+    def __gt__(self, other):
+        other = self._coerce_same_n(other)
+        return self.int > other.int
 
-    # def __gt__(self, other):
-    #     return self.int > other
-
-    # def __ge__(self, other):
-    #     return self.int >= other
+    def __ge__(self, other):
+        other = self._coerce_same_n(other)
+        return self.int >= other.int
 
     def __bool__(self):
         """
