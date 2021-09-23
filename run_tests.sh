@@ -1,2 +1,2 @@
 #!/bin/bash
-pytest --doctest-modules
+pytest --doctest-modules ./binteger.py
