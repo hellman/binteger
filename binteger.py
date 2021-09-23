@@ -600,6 +600,37 @@ class Bin:
         y = self.int ^ self.mask
         return self._new(y, n=self.n)
 
+    def __neg__(self):
+        """
+        >>> -Bin(1, 4)
+        Bin(0b1111, n=4)
+        >>> -Bin(0, 4)
+        Bin(0b0000, n=4)
+        """
+        mod = 1 << self.n
+        v = mod - self.int
+        if v >= mod:
+            v -= mod
+        return self._new(v, n=self.n)
+
+    def __add__(self, other):
+        """
+        >>> Bin(31, 5) + 2
+        Bin(0b00001, n=5)
+        >>> Bin(31, 5) + Bin(1, 5)
+        Bin(0b00000, n=5)
+        >>> Bin(31, 5) + Bin(1, 6)
+        Bin(0b100000, n=6)
+        """
+        if isinstance(other, Bin):
+            n = max(self.n, other.n)
+            other = other.int
+        else:
+            n = self.n
+        mod = 1 << n
+        v = int(self.int + other) % mod
+        return self._new(v, n=n)
+
     def scalar_bin(self, other):
         """Dot product in GF(2).
 
