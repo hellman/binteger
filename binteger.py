@@ -30,6 +30,7 @@ True
 .. warning:: `binteger` is optimized for *convenience of use*,
               rather than for performance.
 """
+from random import randrange
 from functools import reduce
 
 
@@ -206,6 +207,32 @@ class Bin:
         if not (-n <= i < n):
             raise ValueError("integer out of range")
         return cls(1 << (n - 1 - i % n), n)
+
+    @classmethod
+    def random(cls, n, nonzero=False):
+        r"""Random `n`-bit Bin.
+
+        Parameters
+        ----------
+        n : int
+            The width.
+        nonzero : bool = False
+            Force nonzero integer?
+
+        Examples
+        --------
+        >>> Bin.random(0)
+        Bin(0b0, n=0)
+        >>> Bin.random(10)  # doctest: +SKIP
+        Bin(0b0110110011, n=10)
+        >>> Bin.random(10)  # doctest: +SKIP
+        Bin(0b1010000111, n=10)
+        >>> all(Bin.random(3) for _ in range(1000))
+        False
+        >>> all(Bin.random(3, nonzero=True) for _ in range(1000))
+        True
+        """
+        return cls(randrange(1 if nonzero else 0, 2**n), n)
 
     @property
     def mask(self):
