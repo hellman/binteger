@@ -666,13 +666,48 @@ class Bin:
         Bin(0b100000, n=6)
         """
         if isinstance(other, Bin):
-            n = max(self.n, other.n)
+            if self.n != other.n:
+                raise ValueError(f"add/sub Bin with different n? {self.n} vs {other.n}")
             other = other.int
-        else:
-            n = self.n
-        mod = 1 << n
-        v = int(self.int + other) % mod
-        return self._new(v, n=n)
+        mask = (1 << self.n) - 1
+        v = int(self.int + other) & mask
+        return self._new(v, n=self.n)
+
+    __radd__ = __add__
+
+    def __sub__(self, other):
+        """
+        >>> Bin(1, 5) - 2
+        Bin(0b11111, n=5)
+        >>> Bin(17, 5) - Bin(1, 5)
+        Bin(0b10000, n=5)
+        >>> Bin(1, 5) + Bin(31, 6)
+        Bin(0b100000, n=6)
+        """
+        if isinstance(other, Bin):
+            if self.n != other.n:
+                raise ValueError(f"add/sub Bin with different n? {self.n} vs {other.n}")
+            other = other.int
+        mask = (1 << self.n) - 1
+        v = int(self.int - other) & mask
+        return self._new(v, n=self.n)
+
+    def __rsub__(self, other):
+        """
+        >>> Bin(1, 5) - 2
+        Bin(0b11111, n=5)
+        >>> Bin(17, 5) - Bin(1, 5)
+        Bin(0b10000, n=5)
+        >>> Bin(1, 5) + Bin(31, 6)
+        Bin(0b100000, n=6)
+        """
+        if isinstance(other, Bin):
+            if self.n != other.n:
+                raise ValueError(f"add/sub Bin with different n? {self.n} vs {other.n}")
+            other = other.int
+        mask = (1 << self.n) - 1
+        v = int(other - self.int) & mask
+        return self._new(v, n=self.n)
 
     def scalar_bin(self, other):
         """Dot product in GF(2).

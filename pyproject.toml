@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "binteger"
-version = "0.12.0"
+version = "0.13.0"
 description = "Binary integer representation toolkit"
 authors = ["Aleksei Udovenko <aleksei@affine.group>"]
 
