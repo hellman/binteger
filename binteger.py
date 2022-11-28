@@ -157,9 +157,12 @@ class Bin:
         Bin(0b0, n=0)
         >>> Bin.empty(4)
         Bin(0b0000, n=4)
+        >>> Bin.zero(4)
+        Bin(0b0000, n=4)
         """
         n = _check_n(n)
         return self._new(0, n)
+    zero = empty
 
     @classmethod
     def full(self, n):
@@ -169,9 +172,12 @@ class Bin:
         Bin(0b0, n=0)
         >>> Bin.full(4)
         Bin(0b1111, n=4)
+        >>> Bin.ones(4)
+        Bin(0b1111, n=4)
         """
         n = _check_n(n)
         return self._new(2**n-1, n)
+    ones = full
 
     @classmethod
     def unit(cls, i, n):
