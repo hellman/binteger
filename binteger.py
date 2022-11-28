@@ -466,13 +466,28 @@ class Bin:
         0
         >>> Bin("101010")[2]
         1
+        >>> Bin("101010")[5]
+        0
+        >>> Bin("101010")[6]
+        Traceback (most recent call last):
+        IndexError: index 6 out of range (-6,5)
+        >>> Bin("101010")[-6]
+        1
+        >>> Bin("101010")[-7]
+        Traceback (most recent call last):
+        IndexError: index -7 out of range (-6,5)
         """
         if isinstance(idx, slice):
             # todo: optimize simple substring slices?
             # easy to mess up with out of bounds, negative indices, etc. ...
             return Bin(self.tuple[idx])
         else:
-            idx = int(idx) % self.n
+            idx = int(idx)
+            if idx < -self.n or idx >= self.n:
+                raise IndexError(f"index {idx} out of range ({-self.n},{self.n-1})")
+            if idx < 0:
+                idx += self.n
+            assert 0 <= idx < self.n
             return 1 & (self.int >> (self.n - 1 - idx))
 
     # __setitem__ maybe ?
