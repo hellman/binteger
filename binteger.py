@@ -180,6 +180,17 @@ class Bin:
     ones = full
 
     @classmethod
+    def iter(self, n):
+        """Iterate over all `n`-bit :class:`Bin`s.
+
+        >>> list(Bin.iter(2))
+        [Bin(0b00, n=2), Bin(0b01, n=2), Bin(0b10, n=2), Bin(0b11, n=2)]
+        """
+        n = _check_n(n)
+        for x in range(2**n):
+            yield Bin(x, n)
+
+    @classmethod
     def unit(cls, i, n):
         r""":class:`Bin` integer only with bit at index `i` set
         (equals :math:`2^{n-1-(i\mod n)}`)
