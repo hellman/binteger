@@ -695,7 +695,9 @@ class Bin:
         >>> Bin(31, 5) + Bin(1, 5)
         Bin(0b00000, n=5)
         >>> Bin(31, 5) + Bin(1, 6)
-        Bin(0b100000, n=6)
+        Traceback (most recent call last):
+         ...
+        ValueError: add/sub Bin with different n? 5 vs 6
         """
         if isinstance(other, Bin):
             if self.n != other.n:
@@ -714,7 +716,9 @@ class Bin:
         >>> Bin(17, 5) - Bin(1, 5)
         Bin(0b10000, n=5)
         >>> Bin(1, 5) + Bin(31, 6)
-        Bin(0b100000, n=6)
+        Traceback (most recent call last):
+         ...
+        ValueError: add/sub Bin with different n? 5 vs 6
         """
         if isinstance(other, Bin):
             if self.n != other.n:
@@ -731,7 +735,9 @@ class Bin:
         >>> Bin(17, 5) - Bin(1, 5)
         Bin(0b10000, n=5)
         >>> Bin(1, 5) + Bin(31, 6)
-        Bin(0b100000, n=6)
+        Traceback (most recent call last):
+         ...
+        ValueError: add/sub Bin with different n? 5 vs 6
         """
         if isinstance(other, Bin):
             if self.n != other.n:
