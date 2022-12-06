@@ -30,8 +30,10 @@ True
 .. warning:: `binteger` is optimized for *convenience of use*,
               rather than for performance.
 """
+from pprint import pprint
 from random import randrange
 from functools import reduce
+from itertools import product
 
 
 class Bin:
@@ -180,15 +182,30 @@ class Bin:
     ones = full
 
     @classmethod
-    def iter(self, n):
+    def iter(self, *ns):
         """Iterate over all `n`-bit :class:`Bin`s.
+        Multiple arguments yield product of single iters,
+        i.e., all tuples of :class:`Bin`s of given sizes `ns`.
 
         >>> list(Bin.iter(2))
         [Bin(0b00, n=2), Bin(0b01, n=2), Bin(0b10, n=2), Bin(0b11, n=2)]
+        >>> pprint(list(Bin.iter(1, 2)))
+        [(Bin(0b0, n=1), Bin(0b00, n=2)),
+         (Bin(0b0, n=1), Bin(0b01, n=2)),
+         (Bin(0b0, n=1), Bin(0b10, n=2)),
+         (Bin(0b0, n=1), Bin(0b11, n=2)),
+         (Bin(0b1, n=1), Bin(0b00, n=2)),
+         (Bin(0b1, n=1), Bin(0b01, n=2)),
+         (Bin(0b1, n=1), Bin(0b10, n=2)),
+         (Bin(0b1, n=1), Bin(0b11, n=2))]
         """
-        n = _check_n(n)
-        for x in range(2**n):
-            yield Bin(x, n)
+        if len(ns) == 1:
+            n = ns[0]
+            n = _check_n(n)
+            for x in range(2**n):
+                yield Bin(x, n)
+        else:
+            yield from product(*[self.iter(n) for n in ns])
 
     @classmethod
     def unit(cls, i, n):
