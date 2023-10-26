@@ -103,6 +103,11 @@ class Bin:
     >>> Bin([0, 1, 2])
     Traceback (most recent call last):
     ValueError: integer 2 is not binary
+
+    >>> Bin([]).tuple
+    ()
+    >>> Bin(0).tuple
+    ()
     """
     __slots__ = "int", "n"
 
@@ -430,7 +435,8 @@ class Bin:
     str = property(__str__)
 
     def __repr__(self):
-        return f"Bin(0b{str(self)}, n={self.n})"
+        s = str(self) if self.n else "0"
+        return f"Bin(0b{s}, n={self.n})"
 
     @property
     def bytes(self):
@@ -465,6 +471,8 @@ class Bin:
         >>> Bin(0xabc, 16).bin
         '0000101010111100'
         """
+        if not self.n:
+            return ""
         return f"{self.int:b}".zfill(self.n)
 
     def __getitem__(self, idx):
